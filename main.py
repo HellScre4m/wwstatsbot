@@ -16,7 +16,8 @@ from telegram.ext import CommandHandler, CallbackQueryHandler
 from telegram.ext.dispatcher import run_async
 from bs4 import BeautifulSoup
 import datetime
-
+import random
+	
 from config import *
 import wwstats
 
@@ -62,9 +63,14 @@ def get_achievement_count(user_id):
 def display_stats(bot, update):
     chat_id = update.message.chat_id
     if update.message.reply_to_message is not None:
-        user_id = update.message.reply_to_message.from_user.id
-        name = update.message.reply_to_message.from_user.first_name
-        username = update.message.reply_to_message.from_user.username
+        if update.message.reply_to_message.forward_from is not None:
+            user_id = update.message.reply_to_message.forward_from.id
+            name = update.message.reply_to_message.forward_from.first_name
+            username = update.message.reply_to_message.forward_from.username
+        else:
+            user_id = update.message.reply_to_message.from_user.id
+            name = update.message.reply_to_message.from_user.first_name
+            username = update.message.reply_to_message.from_user.username
     else:
         user_id = update.message.from_user.id
         name = update.message.from_user.first_name
@@ -77,16 +83,22 @@ def display_stats(bot, update):
 
 
     if username is None:
-        msg =  str(name) + " the " + stats['most_common_role']['role'] + "\n"
+        msg =  "<a href='tg://" + str(user_id) + "'>" + str(name) + " the " + stats['most_common_role']['role'] + "</a>\n"
     else:
         msg =  "<a href='https://telegram.me/" + str(username) + "'>" + str(name) + " the " + stats['most_common_role']['role'] + "</a>\n"
-    msg += "<code>{:<5}</code> Achievements Unlocked!\n".format(achievements)
-    msg += "<code>{:<5}</code> Games Won <code>({})</code>\n".format(stats['games_won']['number'], stats['games_won']['percent'])
-    msg += "<code>{:<5}</code> Games Lost <code>({})</code>\n".format(stats['games_lost']['number'], stats['games_lost']['percent'])
-    msg += "<code>{:<5}</code> Games Survived <code>({})</code>\n".format(stats['games_survived']['number'], stats['games_survived']['percent'])
-    msg += "<code>{:<5}</code> Total Games\n".format(stats['games_played'])
-    msg += "<code>{:<5}</code> times I've gleefully killed {}\n".format(stats['most_killed']['times'], stats['most_killed']['name'])
-    msg += "<code>{:<5}</code> times I've been slaughted by {}\n\n".format(stats['most_killed_by']['times'], stats['most_killed_by']['name'])
+    msg += "<code>{:<5}</code> دستاورد داری 🏆\n".format(achievements)
+    msg += "<code>{:<5}</code> بازی رو بردی <code>({})</code>\n".format(stats['games_won']['number'], stats['games_won']['percent'])
+    msg += "<code>{:<5}</code> بازی رو باختی <code>({})</code>\n".format(stats['games_lost']['number'], stats['games_lost']['percent'])
+    msg += "<code>{:<5}</code> بازی رو تا آخرش زنده موندی <code>({})</code>\n".format(stats['games_survived']['number'], stats['games_survived']['percent'])
+    msg += "<code>{:<5}</code> تعداد کل بازیاته 🤷‍♂️\n".format(stats['games_played'])
+    killed = ["<code>{:<5}</code> بار خبیثانه {} رو کشتی 😈\n", "<code>{:<5}</code> بار حال {} رو گرفتی 🤤\n", 
+    "<code>{:<5}</code> بار خون {} رو ریختی 🔪\n", "<code>{:<5}</code> دفعه {} رو ضربه فنیش کردی 💪\n"]
+    died = ["<code>{:<5}</code> بار {} لهت کرده 🤕\n", "<code>{:<5}</code> دفعه {} حالتو گرفته 😜\n",
+    "<code>{:<5}</code> بار {} صورتت رو خط خطی کرده ⚡️\n"]
+    msg += random.choice(killed).format(stats['most_killed']['times'], stats['most_killed']['name'])
+    msg += random.choice(died).format(stats['most_killed_by']['times'], stats['most_killed_by']['name'])
+    msg += "<a href='https://telegram.me/CafeWerewolf'>cαғε шεяεшσʟғ 🇮🇷</a>\n"
+    
 
     bot.sendMessage(chat_id, msg, parse_mode="HTML", disable_web_page_preview=True)
 
@@ -99,14 +111,15 @@ def display_about(bot, update):
     msg = "Use /stats for stats. Use /achievements or /achv for achivement list."
     msg += "\n\nThis is an edited version to the old wolfcardbot.\n"
     msg += "Click [here](http://pastebin.com/efZ4CPXJ) to check the original source code.\n"
-    msg += "Click [here](https://github.com/jeffffc/wwstatsbot) for the source code of the current project."
+    msg += "Click [here](https://github.com/jeffffc/wwstatsbot) for the source code of the current project.\n"
+    msg += "<a href='https://telegram.me/CafeWerewolf'>cαғε шεяεшσʟғ 🇮🇷</a>\n"
 
     bot.sendMessage(chat_id, msg, parse_mode="Markdown", disable_web_page_preview=True)
 
 
 def startme(bot, update):
     if update.message.chat.type == 'private':
-        update.message.reply_text("Thank you for starting me. Use /stats and /achievements to check your related stats!")
+        update.message.reply_text("مرسی که هستی 😐❤️ اگه می‌خوایی آمار بازیتو ببینی بزن /stats و اگه می‌خوایی ببینی دستاوردات چیان بزن /achievements.")
     else:
         return
 
@@ -118,18 +131,20 @@ def display_achv(bot, update):
 
     print("%s - %s (%d) - achv" % (str(datetime.datetime.now()+datetime.timedelta(hours=8)), name, user_id))
 
-    msg1, msg2 = wwstats.check(user_id)
+    msgs = wwstats.check(user_id)
 
     try:
-        bot.sendMessage(chat_id = user_id, text = msg1, parse_mode='Markdown')
-        bot.sendMessage(chat_id = user_id, text = msg2, parse_mode='Markdown')
+        for msg in msgs:
+            if msg != "":
+                bot.sendMessage(chat_id = user_id, text = msg, parse_mode='Markdown')
         if update.message.chat.type != 'private':
-            update.message.reply_text("I have sent you your achievement list in PM.")
-    except:
+            update.message.reply_text("دستاورداتو فرستادم پیوی مشتی 😘")
+    except Exception as e:
         url = "telegram.me/" + BOT_USERNAME
         keyboard = [[InlineKeyboardButton("Start Me!", url = url)]]
         reply_markup = InlineKeyboardMarkup(keyboard)
-        update.message.reply_text("You have to start me in PM first.", reply_markup = reply_markup)
+        update.message.reply_text("داداچ پیوی یه استارت میزنی قربونت؟؟", reply_markup = reply_markup)
+        print (e)
 
 
 def main():

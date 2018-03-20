@@ -25,41 +25,67 @@ def check(id):
 
     dump = BeautifulSoup(r.json(), 'html.parser')
     db = dump('td')
+    msgs = []
     num = 0
     for i in range(0, len(db), 2):
         stats[num] = db[i].string
         num = num + 1
-
-    msg = "*ATTAINED ({0}/{1}):*\n".format(str(len(stats)), str(len(ACHV)))
+	
+    msgs.append(None)
+    msgs[0] = "*دستاوردهایی که گرفتی ({0}/{1}):*\n".format(str(len(stats)), str(len(ACHV)))
 
     for x in stats:
         if stats[x] in [y['name'] for y in ACHV]:
-            msg += "- `" + stats[x] + "`\n"
-
-
-    msg2 = "\n*MISSING ({0}/{1}):*\n".format(str(len(ACHV)-len(stats)), str(len(ACHV)))
-    msg2 += "*--> ATTAINABLE VIA PLAYING:*\n"
+            msgs[0] += "- `" + stats[x] + "`\n"
+    msgs.append(None)
+    msgs[1] = "\n*دستاوردهایی که نداریشون ({0}/{1}):*\n".format(str(len(ACHV)-len(stats)), str(len(ACHV)))
+    msgs[1] += "*--> اینا رو میشه با بازی کردن به دست اورد:*\n"
+    i = 1
+    j = 1
     for z in ACHV:
         if z['name'] not in stats.values():
             if "inactive" in z or "not_via_playing" in z:
                 continue
-            msg2 += "- `" + z['name'] + "`\n"
-            msg2 += ">>> _" + z['desc'] + "_\n"
-    msg2 += "\n--> *NOT DIRECTLY ATTAINABLE VIA PLAYING:*\n"
+            msgs[i] += "- `" + z['name'] + "`\n"
+            msgs[i] += ">>> _" + z['desc'] + "_\n"
+            j += 1
+            if j%15 == 0:
+                i += 1
+                msgs.append(None)
+                msgs[i] = ""
+    if msgs[i] != "":
+        i += 1
+        msgs.append(None)
+    j = 1
+    msgs[i] = "\n--> *اینا رو نمیشه مستقیما به دست اورد:*\n"
     for z in ACHV:
         if z['name'] not in stats.values():
             if "not_via_playing" in z:
-                msg2 += "- `" + z['name'] + "`\n"
-                msg2 += ">>> _" + z['desc'] + "_\n"
+                msgs[i] += "- `" + z['name'] + "`\n"
+                msgs[i] += ">>> _" + z['desc'] + "_\n"
+                j += 1
+                if j%15 == 0:
+                    i += 1
+                    msgs.append(None)
+                    msgs[i] = ""
             else:
                 continue
-    msg2 += "\n--> *INACTIVE: *\n"
+    if msgs[i] != "":
+        i += 1
+        msgs.append(None)
+    j = 1
+    msgs[i] = "\n--> *این دستاوردا رو بیخیال فعلا غیرفعالن: *\n"
     for z in ACHV:
         if z['name'] not in stats.values():
             if "inactive" in z:
-                msg2 += "- `" + z['name'] + "`\n"
-                msg2 += ">>> _" + z['desc'] + "_\n"
+                msgs[i] += "- `" + z['name'] + "`\n"
+                msgs[i] += ">>> _" + z['desc'] + "_\n"
+                j += 1
+                if j%15 == 0:
+                    i += 1
+                    msgs.append(None)
+                    msgs[i] = ""
             else:
                 continue
 
-    return msg, msg2
+    return msgs
